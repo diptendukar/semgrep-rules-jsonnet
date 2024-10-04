@@ -1,9 +1,9 @@
-name: jsonnet files validations
+name: Validate GHSA IDs in .jsonnet Files
 
 on:
   pull_request:
     branches:
-      - main
+      - develop
 
 jobs:
   validate-ghsa:
@@ -23,12 +23,12 @@ jobs:
         with:
           python-version: '3.9'  # Specify the Python version you need
 
-      # Step 3: Install Python Dependencies (if any)
+      # Step 3: Install Python Dependencies
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
           # Install any required Python packages here
-          # For example: pip install -r scripts/requirements.txt
+          # For example: pip install -r scripts/jsonnet_validation_requirements.txt
           if [ -f scripts/jsonnet_validation_requirements.txt ]; then pip install -r scripts/jsonnet_validation_requirements.txt; fi
 
       # Step 4: Determine Changed .jsonnet Files in /rules/ssc/
@@ -45,21 +45,24 @@ jobs:
           echo "$CHANGED_FILES"
 
           # Filter files within /rules/ssc/, ending with .jsonnet, and matching GHSA pattern
-          SSC_JSONNET_FILES=$(echo "$CHANGED_FILES" | grep '^rules/ssc/' | grep -E '^rules/ssc/.*GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}[^/]*\.jsonnet$' || true)
+          SSC_JSONNET_FILES=$(echo "$CHANGED_FILES" | grep '^rules/ssc/' | grep -E '^rules/ssc/.*GHSA-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}[^/]*\.jsonnet$' || true)
 
           echo "Changed .jsonnet files in /rules/ssc/:"
           echo "$SSC_JSONNET_FILES"
 
-          # Convert the list to space-separated arguments
-          FILES_LIST=$(echo "$SSC_JSONNET_FILES" | tr '\n' ' ')
+          # Convert the list to space-separated arguments, removing any leading/trailing whitespace
+          FILES_LIST=$(echo "$SSC_JSONNET_FILES" | tr '\n' ' ' | xargs)
 
           echo "files=$FILES_LIST" >> $GITHUB_OUTPUT
 
+          # Debug: Output the files list
+          echo "Files list: $FILES_LIST"
+
       # Step 5: Run Validation Only If Relevant Files Are Changed
       - name: Validate GHSA IDs
-        if: steps.changed_files.outputs.files != ''
+        if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
-          echo "Running validation on changed files..."
+          echo "Running GHSA ID validation on changed files..."
 
           # Define the path to the Python script
           VALIDATION_SCRIPT="./scripts/validate_jsonnet.py"
@@ -73,8 +76,8 @@ jobs:
           # Execute the Python validation script, passing the list of files as arguments
           python "$VALIDATION_SCRIPT" ${{ steps.changed_files.outputs.files }}
 
-      # Step 6: Optional - Notify if CI is Skipped
+      # Step 6: Notify CI Skipped
       - name: Notify CI Skipped
-        if: steps.changed_files.outputs.files == ''
+        if: ${{ steps.changed_files.outputs.files == '' }}
         run: |
-          echo "No relevant .jsonnet file changes in /rules/ssc/. Skipping validation."
+          echo "No relevant .jsonnet file changes in /rules/ssc/. Skipping GHSA ID validation."
