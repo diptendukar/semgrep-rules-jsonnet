@@ -3,7 +3,7 @@ name: Validate GHSA IDs in .jsonnet Files
 on:
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
   validate-ghsa:
