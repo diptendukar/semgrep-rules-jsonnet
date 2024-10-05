@@ -1,4 +1,4 @@
-name: Validate GHSA IDs in .jsonnet Files
+name: Validate jsonnet Files
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  validate-ghsa:
+  validate-jsonnet:
     runs-on: ubuntu-latest
 
     steps:
@@ -59,10 +59,10 @@ jobs:
           echo "Files list: $FILES_LIST"
 
       # Step 5: Run Validation Only If Relevant Files Are Changed
-      - name: Validate GHSA IDs
+      - name: Validate jsonnet
         if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
-          echo "Running GHSA ID validation on changed files..."
+          echo "Running jsonnet validation on changed files..."
 
           # Define the path to the Python script
           VALIDATION_SCRIPT="./scripts/validate_jsonnet.py"
@@ -80,4 +80,4 @@ jobs:
       - name: Notify CI Skipped
         if: ${{ steps.changed_files.outputs.files == '' }}
         run: |
-          echo "No relevant .jsonnet file changes in /rules/ssc/. Skipping GHSA ID validation."
+          echo "No relevant .jsonnet file changes in /rules/ssc/. Skipping jsonnet validation."
