@@ -5,7 +5,7 @@ rules([
   csharprule(
     id='ssc-5f6cabde-3469-4659-b1ba-21a4659daab7',
     ghsa_id='GHSA-j646-gj5p-p45h',
-    scakind='upgrade-only',
+    scakind='reachable',
     message='Caused by CVE-2023-4863 - heap overflow in WebP.',
     // reachable_if='optional, will create an `sca-reachable-if` metadata field',
     extra_cwes=['CWE-122: Heap-based Buffer Overflow'],
