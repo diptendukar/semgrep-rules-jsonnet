@@ -1,4 +1,4 @@
-name: Validate jsonnet Files
+name: Validate ssc jsonnet Files
 
 on:
   pull_request:
@@ -10,20 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the PR Branch
+      # 1 - checkout the PR branch
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           ref: ${{ github.head_ref }}
-          fetch-depth: 0  # Fetch full history for accurate diff
+          fetch-depth: 0  
 
-      # Step 2: Set Up Python Environment
+      # 2 - setup python
       - name: Set Up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Specify the Python version you need
+          python-version: '3.9'  
 
-      # Step 3: Install Python Dependencies
+      # 3 - install python dependencies if any - nothing for now
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -31,8 +31,8 @@ jobs:
           # For example: pip install -r scripts/jsonnet_validation_requirements.txt
           if [ -f scripts/jsonnet_validation_requirements.txt ]; then pip install -r scripts/jsonnet_validation_requirements.txt; fi
 
-      # Step 4: Determine Changed .jsonnet Files in /rules/ssc/
-      - name: Determine Changed .jsonnet Files in /rules/ssc/
+      # 4 - evaluate if PR contains changes in only .jsonnet files from /rules/ssc/reviewed path
+      - name: Determine Changed .jsonnet Files in /rules/ssc/reviewed
         id: changed_files
         run: |
           echo "Fetching changes from the base branch..."
@@ -44,21 +44,20 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
-          # Filter files within /rules/ssc/, ending with .jsonnet, and matching GHSA pattern
-          SSC_JSONNET_FILES=$(echo "$CHANGED_FILES" | grep '^rules/ssc/' | grep -E '^rules/ssc/.*GHSA-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}[^/]*\.jsonnet$' || true)
+         
+          SSC_JSONNET_FILES=$(echo "$CHANGED_FILES" | grep '^rules/ssc/reviewed/' | grep -E '^rules/ssc/reviewed/.*GHSA-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}[^/]*\.jsonnet$' || true)
 
-          echo "Changed .jsonnet files in /rules/ssc/:"
+          echo "Changed .jsonnet files in /rules/ssc/reviewed/:"
           echo "$SSC_JSONNET_FILES"
 
-          # Convert the list to space-separated arguments, removing any leading/trailing whitespace
+         
           FILES_LIST=$(echo "$SSC_JSONNET_FILES" | tr '\n' ' ' | xargs)
 
           echo "files=$FILES_LIST" >> $GITHUB_OUTPUT
 
-          # Debug: Output the files list
           echo "Files list: $FILES_LIST"
 
-      # Step 5: Run Validation Only If Relevant Files Are Changed
+      # 5 - run validation only if appropriate files are changed
       - name: Validate jsonnet
         if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
@@ -76,8 +75,8 @@ jobs:
           # Execute the Python validation script, passing the list of files as arguments
           python "$VALIDATION_SCRIPT" ${{ steps.changed_files.outputs.files }}
 
-      # Step 6: Notify CI Skipped
+      # 6 - Skip if no appropriate files are changed
       - name: Notify CI Skipped
         if: ${{ steps.changed_files.outputs.files == '' }}
         run: |
-          echo "No relevant .jsonnet file changes in /rules/ssc/. Skipping jsonnet validation."
+          echo "No relevant .jsonnet file changes in /rules/ssc/reviewed/. Skipping ssc jsonnet validation."
