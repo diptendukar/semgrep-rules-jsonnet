@@ -4,7 +4,7 @@ local rules = lib.utils.shortcuts.rules;
 rules([
   csharprule(
     id='ssc-5f6cabde-3469-4659-b1ba-21a4659daab7',
-    ghsa_id='GHSA-j646-gj5p-p45g',
+    ghsa_id='GHSA-dipt-endu-test',
     scakind='upgrade-only',
     message='Caused by CVE-2023-4863 - heap overflow in WebP.',
     // reachable_if='optional, will create an `sca-reachable-if` metadata field',
