@@ -1,6 +1,8 @@
 import os
 import re
 import sys
+from github import Github, GithubException
+
 
 SCAKIND_LABELS = ['upgrade-only', 'reachable']
 
