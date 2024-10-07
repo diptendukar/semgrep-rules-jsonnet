@@ -9,7 +9,7 @@ from github import Github, GithubException
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # Labels related to scakind
-SCAKIND_LABELS = ['upgrade-only', 'reachable','ssc']
+SCAKIND_LABELS = ['upgrade-only', 'reachable']
 
 def extract_ghsa_id_from_filename(filename):
     """
@@ -51,31 +51,55 @@ def extract_field_from_content(file_path, field_name):
 def validate_scakind(file_path, scakind_value):
     """
     Validates the scakind and the presence/absence of patterns: [] or pattern-sources: [] based on scakind.
-    Returns True if valid, False otherwise.
     """
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             content = f.read()
     except Exception as e:
-        logging.error(f"Error reading file {file_path}: {e}")
+        print(f"Error reading file {file_path}: {e}")
         return False
 
-    # Define regex patterns with optional quotes and both ':' and '=' separators
-    patterns_present = re.search(r'^(?!\s*//).*["\']?patterns["\']?\s*[:=]\s*\[', content, re.IGNORECASE | re.MULTILINE)
-    pattern_sources_present = re.search(r'^(?!\s*//).*["\']?pattern-sources["\']?\s*[:=]\s*\[', content, re.IGNORECASE | re.MULTILINE)
-
-    if scakind_value.lower() == 'reachable':
+    # Define the expected behavior based on scakind
+    if scakind_value.lower() == "reachable":
+        # Must contain either patterns: [ or pattern-sources: [
+        # Adjusted regex to include optional quotes around field names
+        patterns_present = re.search(
+            r'^(?!\s*//).*["\']?patterns["\']?\s*:\s*\[',
+            content,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        pattern_sources_present = re.search(
+            r'^(?!\s*//).*["\']?pattern-sources["\']?\s*:\s*\[',
+            content,
+            re.IGNORECASE | re.MULTILINE,
+        )
         if not (patterns_present or pattern_sources_present):
-            logging.error(f"'scakind' is 'reachable' but neither 'patterns: [' nor 'pattern-sources: [' section is present in file: {file_path}")
+            print(
+                f"ERROR: 'scakind' is 'reachable' but neither 'patterns: [' nor 'pattern-sources: [' section is present in file: {file_path}"
+            )
             return False
-    elif scakind_value.lower() == 'upgrade-only':
+    elif scakind_value.lower() == "upgrade-only":
+        # Must NOT contain either patterns: [ or pattern-sources: [
+        patterns_present = re.search(
+            r'^(?!\s*//).*["\']?patterns["\']?\s*:\s*\[',
+            content,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        pattern_sources_present = re.search(
+            r'^(?!\s*//).*["\']?pattern-sources["\']?\s*:\s*\[',
+            content,
+            re.IGNORECASE | re.MULTILINE,
+        )
         if patterns_present or pattern_sources_present:
-            logging.error(f"'scakind' is 'upgrade-only' but either 'patterns: [' or 'pattern-sources: [' section is present in file: {file_path}")
+            print(
+                f"ERROR: 'scakind' is 'upgrade-only' but either 'patterns: [' or 'pattern-sources: [' section is present in file: {file_path}"
+            )
             return False
     else:
-        logging.error(f"Invalid 'scakind' value '{scakind_value}' in file: {file_path}. Allowed values are 'upgrade-only' and 'reachable'.")
+        print(
+            f"ERROR: Invalid 'scakind' value '{scakind_value}' in file: {file_path}. Allowed values are 'upgrade-only' and 'reachable'."
+        )
         return False
-
     return True
 
 def validate_file(file_path):
