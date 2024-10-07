@@ -134,23 +134,23 @@ def validate_file(file_path):
     filename_ghsa = extract_ghsa_id_from_filename(filename)
     if not filename_ghsa:
         print(f"ERROR: Filename does not contain a valid GHSA ID: {filename}")
-        return False
+        return (False, None)
 
     file_ghsa = extract_field_from_content(file_path, "ghsa_id")
     if not file_ghsa:
         print(f"ERROR: 'ghsa_id' not found or invalid format in file: {file_path}")
-        return False
+        return (False, None)
 
     if filename_ghsa.lower() != file_ghsa.lower():
         print(f"ERROR: GHSA ID mismatch in file: {file_path}")
         print(f"       Filename GHSA ID: {filename_ghsa}")
         print(f"       File ghsa_id: {file_ghsa}")
-        return False
+        return (False, None)
 
     scakind = extract_field_from_content(file_path, "scakind")
     if not scakind:
         print(f"ERROR: 'scakind' not found or invalid format in file: {file_path}")
-        return False
+        return (False, None)
 
     scakind_valid = validate_scakind(file_path, scakind)
     if not scakind_valid:
