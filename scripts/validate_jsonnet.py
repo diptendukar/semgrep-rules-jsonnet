@@ -2,6 +2,55 @@ import os
 import re
 import sys
 
+SCAKIND_LABELS = ['upgrade-only', 'reachable']
+
+
+def get_pr_info():
+    """
+    Retrieves PR information from environment variables set by GitHub Actions.
+    """
+    pr_number = os.environ.get('PR_NUMBER')
+    repo_owner = os.environ.get('REPO_OWNER')
+    repo_name = os.environ.get('REPO_NAME')
+    github_token = os.environ.get('GITHUB_TOKEN')
+
+    if not all([pr_number, repo_owner, repo_name, github_token]):
+        print("Missing required environment variables for GitHub PR information.")
+        sys.exit(1)
+
+    return pr_number, repo_owner, repo_name, github_token
+
+def manage_pr_labels(scakind_values, pr_number, repo_owner, repo_name, github_token):
+    """
+    Adds labels based on scakind_values and removes existing scakind-related labels.
+    """
+    g = Github(github_token)
+    try:
+        repo = g.get_repo(f"{repo_owner}/{repo_name}")
+        pr = repo.get_pull(int(pr_number))
+    except GithubException as e:
+        print(f"GitHub API error: {e}")
+        return
+
+    # Remove existing scakind labels
+    existing_labels = [label.name for label in pr.get_labels()]
+    labels_to_remove = [label for label in existing_labels if label in SCAKIND_LABELS]
+    if labels_to_remove:
+        try:
+            pr.remove_from_labels(*labels_to_remove)
+            print(f"Removed labels: {labels_to_remove}")
+        except GithubException as e:
+            print(f"Error removing labels {labels_to_remove}: {e}")
+
+    # Determine new labels to add
+    labels_to_add = [label for label in scakind_values if label in SCAKIND_LABELS]
+    if labels_to_add:
+        try:
+            pr.add_to_labels('ssc')
+            pr.add_to_labels(*labels_to_add)
+            print(f"Added labels: {labels_to_add}")
+        except GithubException as e:
+            print(f"Error adding labels {labels_to_add}: {e}")
 
 def extract_ghsa_id_from_filename(filename):
     pattern = r"(GHSA-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4})"
@@ -105,10 +154,10 @@ def validate_file(file_path):
 
     scakind_valid = validate_scakind(file_path, scakind)
     if not scakind_valid:
-        return False
+        return (False, scakind.lower())
 
     print(f"SUCCESS: GHSA IDs match and 'scakind' is valid for file: {file_path}")
-    return True
+    return (True, scakind.lower())
 
 
 def main():
@@ -122,15 +171,28 @@ def main():
         sys.exit(0)
 
     all_valid = True
+    scakind_values = set()
+
     for file_path in changed_files:
         if not os.path.isfile(file_path):
             print(f"ERROR: File does not exist: {file_path}")
             all_valid = False
             continue
 
-        valid = validate_file(file_path)
+        valid,scakind = validate_file(file_path)
+        if scakind:
+            scakind_values.add(scakind.lower())
+
         if not valid:
             all_valid = False
+
+    scakind_list = list(scakind_values)
+    print(scakind_list)
+
+    # Manage PR labels based on scakind values
+    if scakind_values:
+        pr_number, repo_owner, repo_name, github_token = get_pr_info()
+        manage_pr_labels(scakind_list, pr_number, repo_owner, repo_name, github_token)
 
     if all_valid:
         print("All validations passed successfully.")
