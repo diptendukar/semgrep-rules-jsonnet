@@ -25,27 +25,16 @@ def extract_ghsa_id_from_filename(filename):
     return None
 
 def extract_field_from_content(file_path, field_name):
-    """
-    Extracts the value of a specified field from the file content.
-    Supports both single and double quotes around field names.
-    Example formats:
-      scakind='upgrade-only',
-      scakind="reachable",
-      'scakind': 'upgrade-only',
-      "scakind": "reachable",
-      scakind: 'upgrade-only',
-      scakind: "reachable",
-    """
-    # Pattern to match field assignments with optional quotes and both ':' and '=' as separators
-    pattern = rf"(?<!//\s*)['\"]?{field_name}['\"]?\s*[:=]\s*['\"]([^'\"]+)['\"]"
+    # Pattern to match field assignments with single or double quotes
+    pattern = rf"{field_name}\s*=\s*['\"]([^'\"]+)['\"]"
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             content = f.read()
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
                 return match.group(1)
     except Exception as e:
-        logging.error(f"Error reading file {file_path}: {e}")
+        print(f"Error reading file {file_path}: {e}")
     return None
 
 def validate_scakind(file_path, scakind_value):
